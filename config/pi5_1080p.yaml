@@ -1,0 +1,29 @@
+# Raspberry Pi 5 – higher-performance profile (1080p @ 30 FPS).
+# Use with: python3 -m app.main --config config/pi5_1080p.yaml
+# Keeps queue and processing defaults conservative for stability.
+
+camera:
+  resolution: [1920, 1080]
+  framerate: 30
+
+processing:
+  sharpening_enabled: true
+  sharpening_strength: 1.0
+
+detection:
+  backend: "imx500"
+  confidence_threshold: 0.5
+  caffe_prototxt: ""
+  caffe_weights: ""
+
+server:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8765
+
+app:
+  display_window_name: "Pi Camera Platform"
+  csv_log_path: "./logs/runtime_metrics.csv"
+  frame_queue_size: 5
+  include_system_metrics: true
+  headless: false

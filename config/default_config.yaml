@@ -1,0 +1,37 @@
+# Camera capture resolution and framerate
+camera:
+  resolution: [1280, 720]
+  framerate: 30
+
+# ISP and processing defaults
+processing:
+  sharpening_enabled: true
+  sharpening_strength: 1.0
+  denoising_enabled: false
+  denoising_mode: "fast"
+  denoising_strength: 1.0
+
+# Detection: backend "yolo" for CPU segmentation; IMX500 detection created in main
+detection:
+  backend: "yolo"
+  model_detection: "models/yolo11n.pt"
+  model_segmentation: "models/yolo11n-seg.pt"
+  confidence_threshold: 0.4
+
+# MiDaS depth model path (downloaded if missing)
+depth:
+  model_path: "models/midas_v21_small_256.onnx"
+
+# Dashboard server
+server:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8765
+
+# App: display, logging, queue size
+app:
+  display_window_name: "Pi Camera Platform"
+  csv_log_path: "./logs/runtime_metrics.csv"
+  frame_queue_size: 2
+  include_system_metrics: true
+  headless: false

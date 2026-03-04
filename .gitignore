@@ -1,0 +1,15 @@
+models/
+!models/.gitkeep
+certs/
+logs/
+!logs/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+Thumbs.db
+*.cache
+runs/
