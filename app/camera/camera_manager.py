@@ -60,12 +60,13 @@ class CameraManager:
         time.sleep(0.5)
 
     def restart_with_model(self, imx500_model_path: Optional[str] = None) -> None:
-        """Hot-swap IMX500 model by restarting camera. Called on AI mode switch."""
+        """Hot-swap IMX500 model by restarting camera. No-op if model unchanged."""
         if imx500_model_path == self._current_imx500_model:
             return
         self.stop()
         time.sleep(0.3)
         self.start(imx500_model_path)
+        time.sleep(0.5)  # allow camera to produce first frames before capture_loop starts
 
     def get_imx500(self) -> Any:
         """Return IMX500 device wrapper if loaded; else None."""

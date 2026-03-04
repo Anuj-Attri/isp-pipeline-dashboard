@@ -141,9 +141,9 @@ def main() -> None:
     processing_config.setdefault("denoising_strength", 1.0)
     processing_config.setdefault("sharpening_strength", 1.0)
 
-    prev_ai_mode = AIMode.NONE
     imx500_detector: Optional[Imx500Detector] = None
     pose_estimator: Optional[PoseEstimator] = None
+    prev_ai_mode: Optional[AIMode] = None
     det_config = config.get("detection") or {}
 
     try:
@@ -169,20 +169,32 @@ def main() -> None:
             if current_ai_mode != prev_ai_mode:
                 if current_ai_mode == AIMode.DETECTION:
                     camera_manager.restart_with_model(IMX500_DETECTION_MODEL)
-                    imx500 = camera_manager.get_imx500()
-                    picam2 = camera_manager.get_picam2()
-                    imx500_detector = Imx500Detector(det_config, imx500, picam2) if imx500 else None
+                    imx500_detector = Imx500Detector(
+                        det_config,
+                        camera_manager.get_imx500(),
+                        camera_manager.get_picam2(),
+                    )
                     pose_estimator = None
                 elif current_ai_mode == AIMode.POSE:
                     camera_manager.restart_with_model(IMX500_POSE_MODEL)
-                    imx500 = camera_manager.get_imx500()
-                    picam2 = camera_manager.get_picam2()
-                    pose_estimator = PoseEstimator(imx500, picam2, det_config.get("confidence_threshold", 0.4)) if imx500 else None
+                    pose_estimator = PoseEstimator(
+                        camera_manager.get_imx500(),
+                        camera_manager.get_picam2(),
+                        det_config.get("confidence_threshold", 0.4),
+                    )
                     imx500_detector = None
                 else:
                     camera_manager.restart_with_model(None)
                     imx500_detector = None
                     pose_estimator = None
+
+                capture_thread = threading.Thread(
+                    target=camera_manager.capture_loop,
+                    args=(running,),
+                    daemon=True,
+                )
+                capture_thread.start()
+
                 prev_ai_mode = current_ai_mode
 
             proc_frame = {
