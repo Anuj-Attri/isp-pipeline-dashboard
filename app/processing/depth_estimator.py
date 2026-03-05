@@ -107,10 +107,12 @@ class DepthEstimator:
         crop_size = min(w, h) // 4
         y1, y2 = max(0, cy - crop_size), min(h, cy + crop_size)
         x1, x2 = max(0, cx - crop_size), min(w, cx + crop_size)
-        center_depth = float(np.median(depth[y1:y2, x1:x2]))
+        raw = float(np.median(depth[y1:y2, x1:x2]))
+        d_min, d_max = depth.min(), depth.max()
+        center_rel = (raw - d_min) / (d_max - d_min + 1e-6)
         cv2.putText(
             overlay,
-            f"center ~{center_depth:.2f}",
+            f"depth: {center_rel:.2f} (rel)",
             (10, h - 10),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.6,

@@ -19,7 +19,7 @@ class Imx500Detector(DetectionBackend):
     """Reads SSD detection results from IMX500 NPU via frame metadata.
 
     Metadata is captured alongside each frame in the capture loop and passed
-    directly to detect() — no additional camera calls needed.
+    directly to detect() — no additional camera calls, no thread contention.
     """
 
     def __init__(self, config: dict, imx500: Any, picam2: Any) -> None:
@@ -46,7 +46,7 @@ class Imx500Detector(DetectionBackend):
         Output tensors: [boxes(1,N,4), classes(1,N), scores(1,N), count(1,1)]
         - boxes: ymin, xmin, ymax, xmax normalized 0.0-1.0
         - scores: raw integers 0-100 — divide by 100 to normalize
-        - Apply NMS with IoU threshold 0.35 to remove overlapping boxes
+        - NMS IoU threshold 0.35 to suppress overlapping boxes
         """
         h, w = frame_shape[:2]
         boxes = np.asarray(outputs[0][0])           # (N, 4)
