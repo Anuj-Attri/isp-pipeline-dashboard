@@ -33,7 +33,6 @@ class CameraManager:
     def start(self, imx500_model_path: Optional[str] = None) -> None:
         """Start camera, optionally loading an IMX500 model onto the NPU."""
         with self._lock:
-            self._picam2 = __import__("picamera2").Picamera2()
             if imx500_model_path and os.path.exists(imx500_model_path):
                 try:
                     from picamera2.devices.imx500 import IMX500
@@ -46,6 +45,7 @@ class CameraManager:
             else:
                 self._imx500 = None
                 self._current_imx500_model = None
+            self._picam2 = __import__("picamera2").Picamera2()
 
         cam_conf = self._config["camera"]
         size = tuple(cam_conf.get("resolution", [1280, 720]))
@@ -90,27 +90,30 @@ class CameraManager:
                 pass
 
     def capture_loop(self, running: threading.Event) -> None:
-        """Producer loop: push (frame, timestamp_ns) into frame_queue."""
+        """Producer loop: push (frame, metadata, timestamp_ns) into frame_queue."""
         while running.is_set():
             try:
                 if self._picam2 is None:
                     time.sleep(0.05)
                     continue
-                frame = self._picam2.capture_array()
+                request = self._picam2.capture_request()
+                frame = request.make_array("main")
+                metadata = request.get_metadata()
+                request.release()
                 if not isinstance(frame, np.ndarray):
                     continue
                 if frame.ndim == 3 and frame.shape[2] == 4:
                     frame = frame[:, :, :3]
                 ts = time.time_ns()
                 try:
-                    self._frame_queue.put_nowait((frame, ts))
+                    self._frame_queue.put_nowait((frame, metadata, ts))
                     self._metrics.on_frame_captured()
                 except queue.Full:
                     try:
                         self._frame_queue.get_nowait()
                     except queue.Empty:
                         pass
-                    self._frame_queue.put_nowait((frame, ts))
+                    self._frame_queue.put_nowait((frame, metadata, ts))
                     self._metrics.on_frame_dropped()
             except Exception as e:
                 if running.is_set():

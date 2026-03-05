@@ -16,7 +16,7 @@ detection:
   backend: "yolo"
   model_detection: "models/yolo11n.pt"
   model_segmentation: "models/yolo11n-seg.pt"
-  confidence_threshold: 0.4
+  confidence_threshold: 0.5
 
 # MiDaS depth model path (downloaded if missing)
 depth:

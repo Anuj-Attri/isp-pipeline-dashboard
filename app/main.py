@@ -149,7 +149,7 @@ def main() -> None:
     try:
         while running.is_set():
             try:
-                frame, capture_timestamp_ns = frame_queue.get(timeout=1.0)
+                frame, metadata, capture_timestamp_ns = frame_queue.get(timeout=1.0)
             except queue.Empty:
                 if time.time() - last_frame_time > WATCHDOG_EMPTY_SEC:
                     logger.warning("Frame queue empty for >%.1fs", WATCHDOG_EMPTY_SEC)
@@ -213,11 +213,11 @@ def main() -> None:
             mode_name = current_ai_mode.value
 
             if current_ai_mode == AIMode.DETECTION and imx500_detector is not None:
-                detections, inf_ms = imx500_detector.detect(display_frame)
+                detections, inf_ms = imx500_detector.detect(display_frame, metadata)
                 display_frame = draw_detection_overlay(display_frame, detections)
                 metrics.on_detection_completed(inf_ms, len(detections))
             elif current_ai_mode == AIMode.POSE and pose_estimator is not None:
-                poses, inf_ms = pose_estimator.estimate(display_frame)
+                poses, inf_ms = pose_estimator.estimate(display_frame, metadata)
                 display_frame = pose_estimator.draw(display_frame, poses)
                 metrics.on_detection_completed(inf_ms, len(poses))
             elif current_ai_mode in CPU_MODES:

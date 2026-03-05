@@ -2,7 +2,7 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -60,16 +60,17 @@ class PoseEstimator:
         self._picam2 = picam2
         self._conf = conf_threshold
 
-    def estimate(self, frame: np.ndarray) -> Tuple[List[Pose], float]:
-        """Extract poses from IMX500 metadata."""
-        if self._imx500 is None:
+    def estimate(
+        self, frame: np.ndarray, metadata: Optional[Dict] = None
+    ) -> Tuple[List[Pose], float]:
+        """Extract poses from IMX500 metadata passed from capture loop."""
+        if self._imx500 is None or metadata is None:
             return [], 0.0
         t0 = time.perf_counter()
         try:
-            metadata = self._picam2.capture_metadata()
             outputs = self._imx500.get_outputs(metadata, add_batch=True)
             if outputs is None:
-                return [], 0.0
+                return [], (time.perf_counter() - t0) * 1000.0
             poses = self._parse_hrnet_outputs(outputs, frame.shape)
             return poses, (time.perf_counter() - t0) * 1000.0
         except Exception as e:
