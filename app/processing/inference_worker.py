@@ -69,7 +69,7 @@ class InferenceWorker:
                 self._result = (out, ms, mode, cnt)
 
     def _do_inference(self, mode: AIMode, frame: np.ndarray) -> Tuple[Optional[np.ndarray], float, int]:
-        h, w = frame.shape[:2]
+        h, w = frame.shape[:2]  # scale result back to actual frame size (4K or any)
         small = cv2.resize(frame, AI_INFER_SIZE)
 
         if mode == AIMode.DETECTION:
@@ -79,13 +79,13 @@ class InferenceWorker:
             from app.detection.yolo_detector import YoloDetector
             if isinstance(self._detector, YoloDetector):
                 seg_small, inference_ms = self._detector.segment(small)
-                out = cv2.resize(seg_small, (w, h))
+                out = cv2.resize(seg_small, (w, h), interpolation=cv2.INTER_LINEAR)
                 return out, inference_ms, 0
             return frame.copy(), 0.0, 0
 
         if mode == AIMode.DEPTH:
             vis_small, inference_ms = self._depth_estimator.estimate(small)
-            out = cv2.resize(vis_small, (w, h))
+            out = cv2.resize(vis_small, (w, h), interpolation=cv2.INTER_LINEAR)
             return out, inference_ms, 0
 
         if mode == AIMode.EGO_EXO:

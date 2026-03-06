@@ -31,33 +31,40 @@ class CameraManager:
         self._lock = threading.Lock()
 
     def start(self, imx500_model_path: Optional[str] = None) -> None:
-        """Start camera, optionally loading an IMX500 model onto the NPU."""
-        with self._lock:
-            if imx500_model_path and os.path.exists(imx500_model_path):
-                try:
-                    from picamera2.devices.imx500 import IMX500
-                    self._imx500 = IMX500(imx500_model_path)
-                    self._current_imx500_model = imx500_model_path
-                except Exception as e:
-                    logger.debug("IMX500 init failed: %s", e)
-                    self._imx500 = None
-                    self._current_imx500_model = None
-            else:
+        """Start camera at maximum ISP resolution with optional IMX500 model."""
+        Picamera2 = __import__("picamera2").Picamera2
+        if imx500_model_path and os.path.exists(imx500_model_path):
+            try:
+                from picamera2.devices.imx500 import IMX500
+                self._imx500 = IMX500(imx500_model_path)
+                self._current_imx500_model = imx500_model_path
+            except Exception as e:
+                logger.debug("IMX500 init failed: %s", e)
                 self._imx500 = None
                 self._current_imx500_model = None
-            self._picam2 = __import__("picamera2").Picamera2()
+        else:
+            self._imx500 = None
+            self._current_imx500_model = None
+
+        self._picam2 = Picamera2()
 
         cam_conf = self._config["camera"]
-        size = tuple(cam_conf.get("resolution", [1280, 720]))
-        fps = cam_conf.get("framerate", 30)
+        main_size = tuple(cam_conf.get("resolution", [3840, 2160]))
+        fps = cam_conf.get("framerate", 15)
         fd = int(1e6 / fps)
+        sensor_size = tuple(cam_conf.get("sensor_resolution", [4056, 3040]))
         camera_cfg = self._picam2.create_video_configuration(
-            main={"size": size, "format": "RGB888"},
-            controls={"FrameDurationLimits": (fd, fd)},
+            main={"size": main_size, "format": "RGB888"},
+            raw={"size": sensor_size},
+            controls={
+                "FrameDurationLimits": (fd, fd),
+                "NoiseReductionMode": 2,
+            },
+            buffer_count=2,
         )
         self._picam2.configure(camera_cfg)
         self._picam2.start()
-        time.sleep(0.5)
+        time.sleep(1.0)
 
     def restart_with_model(self, imx500_model_path: Optional[str] = None) -> None:
         """Hot-swap IMX500 model by restarting camera. No-op if model unchanged."""

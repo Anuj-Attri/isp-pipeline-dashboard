@@ -14,6 +14,7 @@ from app.server.state import ServerState
 
 _pipeline_state_ref: Optional[Any] = None
 _camera_manager_ref: Optional[Any] = None
+_config_ref: Optional[Any] = None
 
 
 class IspToggleBody(BaseModel):
@@ -182,10 +183,12 @@ def create_app(
     state: ServerState,
     pipeline_state: Optional[Any] = None,
     camera_manager: Optional[Any] = None,
+    config: Optional[Any] = None,
 ) -> FastAPI:
-    global _pipeline_state_ref, _camera_manager_ref
+    global _pipeline_state_ref, _camera_manager_ref, _config_ref
     _pipeline_state_ref = pipeline_state
     _camera_manager_ref = camera_manager
+    _config_ref = config
 
     app = FastAPI(title="ISP Pipeline Dashboard")
 
@@ -223,6 +226,10 @@ def create_app(
 
     @app.get("/video")
     def video_stream():
+        app_config = (_config_ref or {}).get("app", {})
+        mjpeg_res = tuple(app_config.get("mjpeg_resolution", [1920, 1080]))
+        mjpeg_quality = app_config.get("mjpeg_quality", 85)
+
         def generate() -> Iterator[bytes]:
             boundary = "frame"
             while True:
@@ -230,8 +237,10 @@ def create_app(
                 if frame is None:
                     time.sleep(0.033)
                     continue
-                stream_frame = cv2.resize(frame, (854, 480))
-                _, buf = cv2.imencode(".jpg", stream_frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                frame_resized = cv2.resize(frame, mjpeg_res, interpolation=cv2.INTER_AREA)
+                _, buf = cv2.imencode(
+                    ".jpg", frame_resized, [cv2.IMWRITE_JPEG_QUALITY, mjpeg_quality]
+                )
                 if buf is None:
                     continue
                 yield (
@@ -269,6 +278,7 @@ def run_server(
     port: int = 8765,
     pipeline_state: Optional[Any] = None,
     camera_manager: Optional[Any] = None,
+    config: Optional[Any] = None,
 ) -> None:
     """Run FastAPI with uvicorn. HTTPS via self-signed cert if certs/ not present."""
     import uvicorn
@@ -292,7 +302,7 @@ def run_server(
             check=False,
             capture_output=True,
         )
-    app = create_app(state, pipeline_state, camera_manager)
+    app = create_app(state, pipeline_state, camera_manager, config)
     if os.path.exists(cert_path) and os.path.exists(key_path):
         uvicorn.run(
             app,

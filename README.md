@@ -132,8 +132,32 @@ All ISP stages run inline on the main loop thread. Picamera2 runtime controls
 git clone https://github.com/Anuj-Attri/isp-pipeline-dashboard
 cd isp-pipeline-dashboard
 pip3 install --break-system-packages -r requirements.txt
+```
+
+### Live camera (4K ISP, 1080p stream)
+
+```bash
 ./scripts/launch.sh
 # Dashboard: https://<pi-ip>:8765
+```
+
+### Single image — run full ISP + AI pipeline, save result
+
+```bash
+./scripts/launch.sh --image /path/to/image.jpg --mode depth
+```
+
+### Video file — feed through pipeline, serve on dashboard
+
+```bash
+./scripts/launch.sh --video /path/to/video.mp4 --mode segmentation
+```
+
+### AI mode options
+
+```bash
+# none | detection | pose | segmentation | depth | ego_exo
+./scripts/launch.sh --mode detection
 ```
 
 Requires Raspberry Pi OS Bookworm with `python3-picamera2` and `imx500-all` installed:
